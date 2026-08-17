@@ -40,14 +40,14 @@
   body.phase-work{ background:var(--red); }
   body.phase-done{ background:var(--red); }
 
-  /* ---- Full-screen continuous progress fill ---- */
-  .progress-fill{
-    position:fixed; left:0; right:0; bottom:0; z-index:1; height:0%;
-    background:rgba(255,255,255,.14); pointer-events:none;
+  /* ---- Blocky segmented progress ---- */
+  .seg-bar{
+    position:relative; z-index:2; display:flex; gap:3px; padding:0 24px; margin-bottom:10px;
   }
-  body.phase-prep .progress-fill{ background:var(--red); }
-  body.phase-work .progress-fill{ background:var(--white); }
-  body.phase-done .progress-fill{ display:none; }
+  .seg{ flex:1; height:10px; background:transparent; border:1px solid var(--line); }
+  .phase-work .seg, .phase-done .seg{ border-color:var(--lineDark); }
+  .seg.filled{ background:var(--white); border-color:var(--white); }
+  .phase-work .seg.filled, .phase-done .seg.filled{ background:var(--black); border-color:var(--black); }
 
 
   /* ---- Top bar ---- */
@@ -204,7 +204,6 @@
   <audio id="sndRoundReset" src="sounds/round-reset.mp3" preload="auto"></audio>
   <audio id="sndComplete" src="sounds/complete.mp3" preload="auto"></audio>
 
-  <div class="progress-fill" id="progressFill"></div>
 
   <div class="top">
     <div class="brand">
@@ -228,6 +227,7 @@
     <div class="next" id="nextLabel">then Work</div>
   </div>
 
+  <div class="seg-bar" id="segBar"></div>
   <div class="meta-row">
     <span id="metaLeft">Round 1/8</span>
     <span id="metaRight">Ex 1/1</span>
@@ -385,8 +385,18 @@
   const metaLeft = $('metaLeft');
   const metaRight = $('metaRight');
   const doneCross = $('doneCross');
-  const progressFill = $('progressFill');
+  const segBar = $('segBar');
   const startBtn = $('startBtn');
+  const SEG_COUNT = 20;
+
+  // Build segment bar once
+  const segEls = [];
+  for (let i=0;i<SEG_COUNT;i++){
+    const s = document.createElement('div');
+    s.className = 'seg';
+    segBar.appendChild(s);
+    segEls.push(s);
+  }
 
   function exName(i){
     return (state.exercises && state.exercises[i]) ? state.exercises[i] : ('Exercise ' + (i+1));
@@ -457,13 +467,16 @@
       metaRight.textContent = `Ex ${exerciseIndex+1}/${state.exerciseCount}`;
     }
 
-    updateProgressFill();
+    updateSegBar();
   }
 
-  function updateProgressFill(){
+  function updateSegBar(){
     const total = currentPhaseDuration(phase) || 1;
     const elapsedFrac = (phase==='done') ? 1 : Math.min(1, Math.max(0, 1 - (remaining / total)));
-    progressFill.style.height = (elapsedFrac * 100) + '%';
+    const filled = Math.round(elapsedFrac * SEG_COUNT);
+    for (let i=0;i<SEG_COUNT;i++){
+      segEls[i].classList.toggle('filled', i < filled);
+    }
   }
 
   // ---- Custom sound clips (replace the old synthesized beeps) ----
@@ -543,8 +556,6 @@
       halfwayPlayed = true;
       halfwayChime();
     }
-
-    updateProgressFill();
 
     if (whole !== lastWholeSecond){
       lastWholeSecond = whole;
