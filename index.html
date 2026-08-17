@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Intervals">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0b0f">
+<title>Interval Timer</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0b0f'/%3E%3Ccircle cx='50' cy='54' r='30' fill='none' stroke='%23ff5a3c' stroke-width='7'/%3E%3Cline x1='50' y1='54' x2='50' y2='34' stroke='%23ff5a3c' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='50' y1='54' x2='65' y2='60' stroke='%23ff5a3c' stroke-width='6' stroke-linecap='round'/%3E%3Crect x='40' y='14' width='20' height='8' rx='4' fill='%23ff5a3c'/%3E%3C/svg%3E">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#0b0b0f;
+    --card:#15151c;
+    --work:#ff5a3c;
+    --rest:#3ba3ff;
+    --reset:#b06cf5;
+    --prep:#f5c94b;
+    --done:#4ade80;
+    --muted:#7b7b88;
+    --text:#f4f4f6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{
+    height:100%; margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    overscroll-behavior:none;
+  }
+  body{
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    height:100dvh; padding:env(safe-area-inset-top,20px) 20px calc(env(safe-area-inset-bottom,20px) + 10px);
+    transition:background-color .35s ease;
+  }
+  body.phase-work{background:#2a1410;}
+  body.phase-rest{background:#0f1e2c;}
+  body.phase-roundReset{background:#211430;}
+  body.phase-prep{background:#2a2410;}
+  body.phase-done{background:#0f2a1c;}
+
+  .top{width:100%; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--muted); letter-spacing:.02em;}
+  .top .rounds{font-variant-numeric:tabular-nums; text-align:center; flex:1;}
+  .settings-btn{background:none; border:none; color:var(--muted); font-size:20px; padding:6px; cursor:pointer;}
+
+  .center{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%;}
+  .phase-label{font-size:16px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; opacity:.9; max-width:80vw; text-align:center;}
+  .phase-work .phase-label{color:var(--work);}
+  .phase-rest .phase-label{color:var(--rest);}
+  .phase-roundReset .phase-label{color:var(--reset);}
+  .phase-prep .phase-label{color:var(--prep);}
+  .phase-done .phase-label{color:var(--done);}
+
+  .ring-wrap{position:relative; width:min(78vw, 340px); height:min(78vw, 340px); display:flex; align-items:center; justify-content:center;}
+  svg.ring{position:absolute; inset:0; transform:rotate(-90deg);}
+  svg.ring circle{fill:none; stroke-width:10; stroke-linecap:round;}
+  .ring-bg{stroke:rgba(255,255,255,.08);}
+  .ring-fg{stroke:var(--work); transition:stroke .3s ease;}
+  .phase-rest .ring-fg{stroke:var(--rest);}
+  .phase-roundReset .ring-fg{stroke:var(--reset);}
+  .phase-prep .ring-fg{stroke:var(--prep);}
+  .phase-done .ring-fg{stroke:var(--done);}
+
+  .time{font-size:76px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+  .next{margin-top:6px; font-size:14px; color:var(--muted); max-width:70vw; text-align:center;}
+
+  .controls{width:100%; display:flex; gap:14px; justify-content:center; padding-top:10px;}
+  .btn{
+    flex:1; max-width:160px; padding:16px 0; border-radius:16px; border:none; font-size:17px; font-weight:600;
+    cursor:pointer; transition:transform .1s ease, opacity .1s ease;
+  }
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:var(--work); color:#1a0a06;}
+  .btn.secondary{background:var(--card); color:var(--text);}
+  .btn.ghost{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,.12);}
+
+  /* Settings panel */
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-end; z-index:10;
+  }
+  .sheet-backdrop.open{display:flex;}
+  .sheet{
+    width:100%; background:#17171f; border-radius:22px 22px 0 0; padding:18px 20px calc(env(safe-area-inset-bottom,18px) + 18px);
+    max-height:82dvh; overflow-y:auto;
+  }
+  .sheet h2{margin:2px 0 16px; font-size:18px;}
+  .sheet h3{margin:18px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);}
+  .field{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.06);}
+  .field label{font-size:15px; color:var(--text);}
+  .field .sub{display:block; font-size:12px; color:var(--muted); margin-top:2px;}
+  .stepper{display:flex; align-items:center; gap:14px;}
+  .stepper button{
+    width:34px; height:34px; border-radius:50%; border:none; background:var(--card); color:var(--text);
+    font-size:20px; line-height:1; cursor:pointer;
+  }
+  .stepper span{min-width:64px; text-align:center; font-variant-numeric:tabular-nums; font-size:16px; font-weight:600;}
+
+  .exercise-row{display:flex; align-items:center; gap:10px; padding:8px 0;}
+  .exercise-row .idx{width:22px; text-align:center; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums;}
+  .exercise-row input{
+    flex:1; background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 12px;
+    color:var(--text); font-size:15px;
+  }
+
+  .sheet-actions{display:flex; gap:10px; margin-top:18px;}
+  .sheet-actions .btn{padding:14px 0;}
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0;}
+  .switch{position:relative; width:46px; height:28px; background:#333; border-radius:999px; cursor:pointer; transition:background .2s;}
+  .switch.on{background:var(--work);}
+  .switch::after{content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .2s;}
+  .switch.on::after{transform:translateX(18px);}
+
+  .workout-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--card); border-radius:14px; padding:12px 14px; margin-bottom:10px;
+  }
+  .workout-item .info{flex:1; min-width:0;}
+  .workout-item .info .name{font-size:15px; font-weight:600;}
+  .workout-item .info .meta{font-size:12px; color:var(--muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .workout-item .actions{display:flex; gap:8px;}
+  .icon-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.14); color:var(--text); border-radius:10px;
+    padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  .icon-btn.danger{color:#ff6b6b; border-color:rgba(255,107,107,.3);}
+  .empty-state{color:var(--muted); font-size:14px; text-align:center; padding:24px 0;}
+</style>
+</head>
+<body class="phase-prep">
+
+  <div class="top">
+    <button class="settings-btn" id="wakeIndicator" title="Screen wake lock" style="visibility:hidden">●</button>
+    <div class="rounds" id="roundsLabel">Round 1 / 8</div>
+    <button class="settings-btn" id="openSettings">⚙︎</button>
+  </div>
+
+  <div class="center">
+    <div class="phase-label" id="phaseLabel">Get Ready</div>
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 200 200">
+        <circle class="ring-bg" cx="100" cy="100" r="90"></circle>
+        <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="90" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
+      </svg>
+      <div style="text-align:center;">
+        <div class="time" id="timeDisplay">00:10</div>
+        <div class="next" id="nextLabel">then Work</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn secondary" id="resetBtn">Reset</button>
+    <button class="btn primary" id="startBtn">Start</button>
+  </div>
+
+  <!-- Settings Sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop">
+    <div class="sheet">
+      <h2>Workout Settings</h2>
+
+      <div class="sheet-actions" style="margin-top:0; margin-bottom:6px;">
+        <button class="btn secondary" id="loadWorkoutBtn">Load Previous</button>
+        <button class="btn secondary" id="saveWorkoutBtn">Save Workout</button>
+      </div>
+
+      <h3>Timing</h3>
+      <div class="field">
+        <label>Prepare</label>
+        <div class="stepper">
+          <button data-target="prep" data-step="-5">−</button>
+          <span id="prepVal">10s</span>
+          <button data-target="prep" data-step="5">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Work</label>
+        <div class="stepper">
+          <button data-target="work" data-step="-5">−</button>
+          <span id="workVal">20s</span>
+          <button data-target="work" data-step="5">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Rest<span class="sub">between exercises</span></label>
+        <div class="stepper">
+          <button data-target="rest" data-step="-5">−</button>
+          <span id="restVal">10s</span>
+          <button data-target="rest" data-step="5">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Rounds</label>
+        <div class="stepper">
+          <button data-target="rounds" data-step="-1">−</button>
+          <span id="roundsVal">8</span>
+          <button data-target="rounds" data-step="1">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Round Reset<span class="sub">time until new round starts</span></label>
+        <div class="stepper">
+          <button data-target="roundReset" data-step="-5">−</button>
+          <span id="roundResetVal">30s</span>
+          <button data-target="roundReset" data-step="5">+</button>
+        </div>
+      </div>
+
+      <h3>Exercises</h3>
+      <div class="field">
+        <label>Number of Exercises</label>
+        <div class="stepper">
+          <button data-target="exerciseCount" data-step="-1">−</button>
+          <span id="exerciseCountVal">1</span>
+          <button data-target="exerciseCount" data-step="1">+</button>
+        </div>
+      </div>
+      <div id="exerciseList"></div>
+
+      <h3>Alerts</h3>
+      <div class="toggle-row">
+        <label>Sound</label>
+        <div class="switch on" id="soundToggle"></div>
+      </div>
+      <div class="toggle-row">
+        <label>Vibration</label>
+        <div class="switch on" id="vibrateToggle"></div>
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn ghost" id="closeSettings">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Workout Sheet -->
+  <div class="sheet-backdrop" id="loadBackdrop">
+    <div class="sheet">
+      <h2>Load Previous Workout</h2>
+      <div id="workoutList"></div>
+      <div class="sheet-actions">
+        <button class="btn ghost" id="closeLoad">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  // ---- State ----
+  const state = {
+    prep: 10, work: 20, rest: 10, roundReset: 30, rounds: 8,
+    exerciseCount: 1, exercises: ["Exercise 1"],
+    sound: true, vibrate: true,
+  };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('intervalTimerSettings') || 'null');
+    if (saved) Object.assign(state, saved);
+  } catch(e){}
+  normalizeExercises();
+
+  function normalizeExercises(){
+    state.exerciseCount = Math.max(1, state.exerciseCount || 1);
+    const list = Array.isArray(state.exercises) ? state.exercises.slice() : [];
+    while (list.length < state.exerciseCount) list.push('Exercise ' + (list.length + 1));
+    list.length = state.exerciseCount;
+    state.exercises = list;
+  }
+
+  function persist(){
+    localStorage.setItem('intervalTimerSettings', JSON.stringify(state));
+  }
+
+  function getWorkouts(){
+    try{ return JSON.parse(localStorage.getItem('intervalTimerWorkouts') || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveWorkouts(list){
+    localStorage.setItem('intervalTimerWorkouts', JSON.stringify(list));
+  }
+
+  // ---- Timer engine ----
+  let phase = 'idle'; // idle | prep | work | rest | roundReset | done
+  let round = 1;
+  let exerciseIndex = 0;
+  let remaining = 0;
+  let running = false;
+  let tickHandle = null;
+  let endTime = 0;
+  let wakeLock = null;
+
+  const body = document.body;
+  const timeDisplay = $('timeDisplay');
+  const phaseLabel = $('phaseLabel');
+  const nextLabel = $('nextLabel');
+  const roundsLabel = $('roundsLabel');
+  const ringFg = $('ringFg');
+  const startBtn = $('startBtn');
+  const CIRC = 2 * Math.PI * 90;
+
+  function exName(i){
+    return (state.exercises && state.exercises[i]) ? state.exercises[i] : ('Exercise ' + (i+1));
+  }
+
+  function fmt(s){
+    s = Math.max(0, Math.ceil(s));
+    const m = Math.floor(s/60);
+    const sec = s % 60;
+    return (m>0 ? m+':'+String(sec).padStart(2,'0') : '0:'+String(sec).padStart(2,'0'));
+  }
+
+  function setPhaseUI(p){
+    body.className = 'phase-' + p;
+  }
+
+  function currentPhaseDuration(p){
+    if (p==='prep') return state.prep;
+    if (p==='work') return state.work;
+    if (p==='rest') return state.rest;
+    if (p==='roundReset') return state.roundReset;
+    return 0;
+  }
+
+  function labelFor(p){
+    if (p==='prep') return 'Get Ready';
+    if (p==='work') return exName(exerciseIndex);
+    if (p==='rest') return 'Rest';
+    if (p==='roundReset') return 'Round Reset';
+    if (p==='done') return 'Done!';
+    return '';
+  }
+
+  function nextLabelFor(p){
+    const lastExercise = exerciseIndex >= state.exerciseCount - 1;
+    if (p==='prep') return 'then ' + exName(0);
+    if (p==='work'){
+      if (!lastExercise) return state.rest>0 ? 'then Rest' : 'then ' + exName(exerciseIndex+1);
+      if (round < state.rounds) return state.roundReset>0 ? 'then Round Reset' : 'then ' + exName(0);
+      return '';
+    }
+    if (p==='rest') return 'then ' + exName(exerciseIndex+1);
+    if (p==='roundReset') return 'then ' + exName(0);
+    return '';
+  }
+
+  function updateDisplay(){
+    timeDisplay.textContent = fmt(remaining);
+    phaseLabel.textContent = labelFor(phase);
+    nextLabel.textContent = nextLabelFor(phase);
+    if (phase==='done'){
+      roundsLabel.textContent = `Complete — ${state.rounds} rounds`;
+    } else if (phase==='prep'){
+      roundsLabel.textContent = `Round 1 / ${state.rounds}`;
+    } else {
+      roundsLabel.textContent = `Round ${round}/${state.rounds} · Ex ${exerciseIndex+1}/${state.exerciseCount}`;
+    }
+    const total = currentPhaseDuration(phase) || 1;
+    const frac = Math.max(0, remaining) / total;
+    ringFg.style.strokeDasharray = CIRC;
+    ringFg.style.strokeDashoffset = CIRC * (1 - frac);
+  }
+
+  // Simple WebAudio beep, no external assets
+  let audioCtx;
+  function beep(freq, dur){
+    if (!state.sound) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.value = 0.18;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      o.stop(audioCtx.currentTime + dur);
+    }catch(e){}
+  }
+
+  function vibrate(pattern){
+    if (state.vibrate && navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  function announcePhaseStart(p){
+    if (p==='work'){ beep(880,0.15); vibrate([80,60,80]); }
+    else if (p==='rest'){ beep(440,0.15); vibrate(60); }
+    else if (p==='roundReset'){ beep(600,0.15); setTimeout(()=>beep(600,0.15),180); vibrate([100,80,100]); }
+    else if (p==='done'){ beep(660,0.12); setTimeout(()=>beep(880,0.12),150); setTimeout(()=>beep(1046,0.2),300); vibrate([100,60,100,60,200]); }
+  }
+
+  function countdownTick(){ beep(1200,0.06); }
+
+  function halfwayChime(){ beep(700,0.1); setTimeout(()=>beep(1000,0.12), 110); }
+
+  async function requestWakeLock(){
+    try{
+      if ('wakeLock' in navigator){
+        wakeLock = await navigator.wakeLock.request('screen');
+        $('wakeIndicator').style.visibility = 'visible';
+        wakeLock.addEventListener('release', ()=>{ $('wakeIndicator').style.visibility='hidden'; });
+      }
+    }catch(e){}
+  }
+  function releaseWakeLock(){
+    if (wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState==='visible' && running) requestWakeLock();
+  });
+
+  let lastWholeSecond = null;
+  let halfwayPlayed = false;
+
+  function tick(){
+    const now = Date.now();
+    remaining = (endTime - now) / 1000;
+    const whole = Math.ceil(remaining);
+
+    if (phase === 'work' && !halfwayPlayed && remaining <= state.work / 2){
+      halfwayPlayed = true;
+      halfwayChime();
+    }
+
+    if (whole !== lastWholeSecond){
+      lastWholeSecond = whole;
+      if (whole > 0 && whole <= 3 && phase !== 'idle' && phase !== 'done') {
+        countdownTick();
+      }
+      updateDisplay();
+    }
+
+    if (remaining <= 0){
+      advancePhase();
+      return;
+    }
+    tickHandle = requestAnimationFrame(tick);
+  }
+
+  function startPhase(p, dur){
+    phase = p;
+    remaining = dur;
+    endTime = Date.now() + dur*1000;
+    lastWholeSecond = null;
+    halfwayPlayed = false;
+    setPhaseUI(p);
+    announcePhaseStart(p);
+    updateDisplay();
+    if (dur <= 0){ advancePhase(); return; }
+    tickHandle = requestAnimationFrame(tick);
+  }
+
+  function advancePhase(){
+    cancelAnimationFrame(tickHandle);
+    if (phase === 'prep'){
+      round = 1; exerciseIndex = 0;
+      startPhase('work', state.work);
+    } else if (phase === 'work'){
+      const lastExercise = exerciseIndex >= state.exerciseCount - 1;
+      if (!lastExercise){
+        startPhase('rest', state.rest);
+      } else if (round < state.rounds){
+        startPhase('roundReset', state.roundReset);
+      } else {
+        finish();
+      }
+    } else if (phase === 'rest'){
+      exerciseIndex++;
+      startPhase('work', state.work);
+    } else if (phase === 'roundReset'){
+      round++; exerciseIndex = 0;
+      startPhase('work', state.work);
+    }
+  }
+
+  function finish(){
+    phase = 'done';
+    setPhaseUI('done');
+    announcePhaseStart('done');
+    remaining = 0;
+    updateDisplay();
+    running = false;
+    startBtn.textContent = 'Start';
+    releaseWakeLock();
+  }
+
+  function start(){
+    if (running) return;
+    running = true;
+    startBtn.textContent = 'Pause';
+    requestWakeLock();
+    if (phase === 'idle' || phase === 'done'){
+      round = 1; exerciseIndex = 0;
+      startPhase('prep', state.prep);
+    } else {
+      // resume from pause
+      endTime = Date.now() + remaining*1000;
+      lastWholeSecond = null;
+      tickHandle = requestAnimationFrame(tick);
+    }
+  }
+
+  function pause(){
+    running = false;
+    startBtn.textContent = 'Resume';
+    cancelAnimationFrame(tickHandle);
+  }
+
+  function reset(){
+    running = false;
+    cancelAnimationFrame(tickHandle);
+    phase = 'idle';
+    round = 1;
+    exerciseIndex = 0;
+    remaining = state.prep;
+    setPhaseUI('prep');
+    startBtn.textContent = 'Start';
+    updateDisplay();
+    releaseWakeLock();
+  }
+
+  startBtn.addEventListener('click', ()=>{
+    if (running) pause(); else start();
+  });
+  $('resetBtn').addEventListener('click', reset);
+
+  // ---- Settings sheet ----
+  const sheetBackdrop = $('sheetBackdrop');
+  const exerciseListEl = $('exerciseList');
+
+  function renderExerciseInputs(){
+    exerciseListEl.innerHTML = '';
+    for (let i=0; i<state.exerciseCount; i++){
+      const row = document.createElement('div');
+      row.className = 'exercise-row';
+      const idx = document.createElement('div');
+      idx.className = 'idx';
+      idx.textContent = (i+1) + '.';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = exName(i);
+      input.placeholder = 'Exercise ' + (i+1);
+      input.addEventListener('input', ()=>{
+        state.exercises[i] = input.value;
+      });
+      row.appendChild(idx);
+      row.appendChild(input);
+      exerciseListEl.appendChild(row);
+    }
+  }
+
+  function syncSettingsUI(){
+    $('prepVal').textContent = state.prep + 's';
+    $('workVal').textContent = state.work + 's';
+    $('restVal').textContent = state.rest + 's';
+    $('roundsVal').textContent = state.rounds;
+    $('roundResetVal').textContent = state.roundReset + 's';
+    $('exerciseCountVal').textContent = state.exerciseCount;
+    $('soundToggle').classList.toggle('on', state.sound);
+    $('vibrateToggle').classList.toggle('on', state.vibrate);
+    renderExerciseInputs();
+  }
+
+  $('openSettings').addEventListener('click', ()=>{
+    syncSettingsUI();
+    sheetBackdrop.classList.add('open');
+  });
+  $('closeSettings').addEventListener('click', ()=>{
+    normalizeExercises();
+    sheetBackdrop.classList.remove('open');
+    persist();
+    if (!running) reset();
+  });
+  sheetBackdrop.addEventListener('click', (e)=>{
+    if (e.target === sheetBackdrop){
+      normalizeExercises();
+      sheetBackdrop.classList.remove('open'); persist(); if(!running) reset();
+    }
+  });
+
+  document.querySelectorAll('.stepper button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = btn.dataset.target;
+      const step = parseInt(btn.dataset.step, 10);
+      let min = (target==='rounds' || target==='exerciseCount') ? 1 : 0;
+      state[target] = Math.max(min, (state[target]||0) + step);
+      if (target === 'exerciseCount') normalizeExercises();
+      syncSettingsUI();
+    });
+  });
+
+  $('soundToggle').addEventListener('click', ()=>{
+    state.sound = !state.sound;
+    syncSettingsUI();
+  });
+  $('vibrateToggle').addEventListener('click', ()=>{
+    state.vibrate = !state.vibrate;
+    syncSettingsUI();
+  });
+
+  // ---- Save / Load workouts ----
+  const loadBackdrop = $('loadBackdrop');
+  const workoutListEl = $('workoutList');
+
+  $('saveWorkoutBtn').addEventListener('click', ()=>{
+    normalizeExercises();
+    const name = window.prompt('Name this workout:', '');
+    if (!name) return;
+    const workouts = getWorkouts();
+    const entry = {
+      name: name.trim(),
+      savedAt: Date.now(),
+      prep: state.prep, work: state.work, rest: state.rest,
+      roundReset: state.roundReset, rounds: state.rounds,
+      exerciseCount: state.exerciseCount, exercises: state.exercises.slice(),
+    };
+    const existingIdx = workouts.findIndex(w => w.name === entry.name);
+    if (existingIdx >= 0) workouts[existingIdx] = entry; else workouts.unshift(entry);
+    saveWorkouts(workouts);
+  });
+
+  function renderWorkoutList(){
+    const workouts = getWorkouts();
+    workoutListEl.innerHTML = '';
+    if (!workouts.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No saved workouts yet.';
+      workoutListEl.appendChild(empty);
+      return;
+    }
+    workouts.forEach((w, i)=>{
+      const item = document.createElement('div');
+      item.className = 'workout-item';
+      const info = document.createElement('div');
+      info.className = 'info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = w.name;
+      const metaEl = document.createElement('div');
+      metaEl.className = 'meta';
+      metaEl.textContent = `${w.exerciseCount} exercises · ${w.rounds} rounds · ${w.work}s work / ${w.rest}s rest`;
+      info.appendChild(nameEl);
+      info.appendChild(metaEl);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const loadBtn = document.createElement('button');
+      loadBtn.className = 'icon-btn';
+      loadBtn.textContent = 'Load';
+      loadBtn.addEventListener('click', ()=>{
+        Object.assign(state, {
+          prep: w.prep, work: w.work, rest: w.rest, roundReset: w.roundReset,
+          rounds: w.rounds, exerciseCount: w.exerciseCount, exercises: w.exercises.slice(),
+        });
+        normalizeExercises();
+        persist();
+        syncSettingsUI();
+        loadBackdrop.classList.remove('open');
+        if (!running) reset();
+      });
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn danger';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', ()=>{
+        const list = getWorkouts();
+        list.splice(i, 1);
+        saveWorkouts(list);
+        renderWorkoutList();
+      });
+      actions.appendChild(loadBtn);
+      actions.appendChild(delBtn);
+
+      item.appendChild(info);
+      item.appendChild(actions);
+      workoutListEl.appendChild(item);
+    });
+  }
+
+  $('loadWorkoutBtn').addEventListener('click', ()=>{
+    renderWorkoutList();
+    loadBackdrop.classList.add('open');
+  });
+  $('closeLoad').addEventListener('click', ()=>{
+    loadBackdrop.classList.remove('open');
+  });
+  loadBackdrop.addEventListener('click', (e)=>{
+    if (e.target === loadBackdrop) loadBackdrop.classList.remove('open');
+  });
+
+  // Init
+  remaining = state.prep;
+  setPhaseUI('prep');
+  updateDisplay();
+})();
+</script>
+</body>
+</html>
