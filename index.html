@@ -47,10 +47,6 @@
   }
   body.phase-done .progress-fill{ display:none; }
 
-  /* Opaque "plate" so key readouts stay legible no matter what the fill is doing behind them */
-  .plate{ display:inline-block; align-self:flex-start; padding:2px 8px; margin:0 -8px; }
-  body.phase-prep .plate, body.phase-rest .plate, body.phase-roundReset .plate{ background:var(--black); }
-  body.phase-work .plate{ background:var(--red); }
 
   /* ---- Top bar ---- */
   .top{
@@ -94,7 +90,7 @@
 
   .time{
     font-size:clamp(96px, 32vw, 220px); font-weight:800; font-variant-numeric:tabular-nums;
-    letter-spacing:-.04em; line-height:.9; margin:4px 0 8px; color:var(--white);
+    letter-spacing:.01em; line-height:.9; margin:4px 0 8px; color:var(--white);
   }
   .phase-work .time, .phase-done .time{ color:var(--black); }
 
@@ -223,9 +219,9 @@
   <div class="center">
     <div class="tag-row">
       <span class="tag"></span>
-      <div class="phase-label plate" id="phaseLabel">Get Ready</div>
+      <div class="phase-label" id="phaseLabel">Get Ready</div>
     </div>
-    <div class="time plate" id="timeDisplay">00:10</div>
+    <div class="time" id="timeDisplay">00:10</div>
     <div class="cross" id="doneCross" style="display:none;"></div>
     <div class="next" id="nextLabel">then Work</div>
   </div>
