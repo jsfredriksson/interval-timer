@@ -40,23 +40,26 @@
   body.phase-work{ background:var(--red); }
   body.phase-done{ background:var(--red); }
 
-  /* ---- Watermark: giant cropped round number, purely decorative ---- */
-  .watermark{
-    position:absolute; right:-.05em; bottom:-.12em; z-index:0; pointer-events:none;
-    font-size:62vw; font-weight:800; line-height:.8; letter-spacing:-.04em;
-    color:rgba(255,255,255,.07); user-select:none; white-space:nowrap;
+  /* ---- Full-screen continuous progress fill (Difference blend) ---- */
+  .progress-fill{
+    position:fixed; left:0; right:0; bottom:0; z-index:1; height:0%;
+    background:var(--red); mix-blend-mode:difference; pointer-events:none;
   }
-  .phase-work .watermark{ color:rgba(0,0,0,.10); }
-  .phase-done .watermark{ display:none; }
+  body.phase-done .progress-fill{ display:none; }
+
+  /* Opaque "plate" so key readouts stay legible no matter what the fill is doing behind them */
+  .plate{ display:inline-block; align-self:flex-start; padding:2px 8px; margin:0 -8px; }
+  body.phase-prep .plate, body.phase-rest .plate, body.phase-roundReset .plate{ background:var(--black); }
+  body.phase-work .plate{ background:var(--red); }
 
   /* ---- Top bar ---- */
   .top{
     position:relative; z-index:2; width:100%; display:flex; align-items:center; justify-content:space-between;
-    padding:0 18px 12px; border-bottom:1px solid var(--line);
+    padding:4px 24px 16px; border-bottom:1px solid var(--line);
   }
   .phase-work .top, .phase-done .top{ border-bottom-color:var(--lineDark); }
-  .brand{display:flex; align-items:center; gap:10px;}
-  .brand .mark{width:16px; height:16px; position:relative; flex:none;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{width:22px; height:22px; position:relative; flex:none;}
   .brand .mark::before, .brand .mark::after{
     content:''; position:absolute; background:var(--white); inset:0;
   }
@@ -64,18 +67,20 @@
   .phase-done .brand .mark::before, .phase-done .brand .mark::after{ background:var(--black); }
   .brand .mark::before{ top:41%; height:18%; }
   .brand .mark::after{ left:41%; width:18%; }
-  .brand .word{font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;}
-  .icon-btn-plain{background:none; border:none; color:var(--white); padding:6px; cursor:pointer;}
+  .brand .word{font-size:14px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;}
+  .icon-btn-plain{background:none; border:none; color:var(--white); padding:8px; margin:-8px; border-radius:12px; cursor:pointer;}
+  .icon-btn-plain:active{ background:rgba(255,255,255,.15); }
   .phase-work .icon-btn-plain, .phase-done .icon-btn-plain{ color:var(--black); }
+  .phase-work .icon-btn-plain:active, .phase-done .icon-btn-plain:active{ background:rgba(0,0,0,.1); }
   .icon-btn-plain svg{ display:block; }
-  .wake-dot{width:6px; height:6px; background:var(--red); border-radius:0; margin-right:6px; visibility:hidden;}
+  .wake-dot{width:7px; height:7px; background:var(--red); border-radius:50%; margin-right:6px; visibility:hidden;}
 
   /* ---- Center stage ---- */
   .center{
     position:relative; z-index:2; flex:1; display:flex; flex-direction:column; justify-content:center;
-    padding:0 18px; min-height:0;
+    padding:0 24px; min-height:0;
   }
-  .tag-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .tag-row{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
   .tag{width:12px; height:12px; background:var(--white); flex:none;}
   .phase-prep .tag{ background:var(--white); }
   .phase-work .tag{ background:var(--black); }
@@ -83,18 +88,18 @@
   .phase-roundReset .tag{ background:var(--red); box-shadow:3px 3px 0 var(--white); }
   .phase-done .tag{ background:var(--white); }
   .phase-label{
-    font-size:13px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--white);
+    font-size:14px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--white);
   }
   .phase-work .phase-label, .phase-done .phase-label{ color:var(--black); }
 
   .time{
-    font-size:clamp(72px, 26vw, 168px); font-weight:800; font-variant-numeric:tabular-nums;
-    letter-spacing:-.04em; line-height:.9; margin:2px 0 6px; color:var(--white);
+    font-size:clamp(96px, 32vw, 220px); font-weight:800; font-variant-numeric:tabular-nums;
+    letter-spacing:-.04em; line-height:.9; margin:4px 0 8px; color:var(--white);
   }
   .phase-work .time, .phase-done .time{ color:var(--black); }
 
   .next{
-    font-size:13px; font-weight:600; letter-spacing:.04em; color:var(--muted); text-transform:uppercase;
+    font-size:14px; font-weight:600; letter-spacing:.04em; color:var(--muted); text-transform:uppercase;
   }
   .phase-work .next, .phase-done .next{ color:rgba(0,0,0,.55); }
 
@@ -105,38 +110,28 @@
   .cross::before{ left:38%; right:38%; top:0; bottom:0; }
   .cross::after{ top:38%; bottom:38%; left:0; right:0; }
 
-  /* ---- Blocky segmented progress ---- */
-  .seg-bar{
-    position:relative; z-index:2; display:flex; gap:3px; padding:0 18px; margin-bottom:10px;
-  }
-  .seg{ flex:1; height:10px; background:transparent; border:1px solid var(--line); }
-  .phase-work .seg, .phase-done .seg{ border-color:var(--lineDark); }
-  .seg.filled{ background:var(--white); border-color:var(--white); }
-  .phase-work .seg.filled, .phase-done .seg.filled{ background:var(--black); border-color:var(--black); }
-
   .meta-row{
     position:relative; z-index:2; display:flex; justify-content:space-between; align-items:baseline;
-    padding:0 18px 14px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding:0 24px 16px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
     color:var(--muted); font-variant-numeric:tabular-nums;
   }
   .phase-work .meta-row, .phase-done .meta-row{ color:rgba(0,0,0,.55); }
 
   /* ---- Controls ---- */
   .controls{
-    position:relative; z-index:2; width:100%; display:flex; border-top:1px solid var(--line);
+    position:relative; z-index:2; width:100%; display:flex; gap:12px; padding:0 24px;
   }
-  .phase-work .controls, .phase-done .controls{ border-top-color:var(--lineDark); }
   .btn{
     flex:1; padding:20px 0; border:none; font-size:15px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-    cursor:pointer; -webkit-appearance:none; appearance:none; border-radius:0;
+    cursor:pointer; -webkit-appearance:none; appearance:none; border-radius:18px;
   }
   .btn:active{ opacity:.75; }
   .btn.primary{ background:var(--white); color:var(--black); }
   .phase-work .btn.primary, .phase-done .btn.primary{ background:var(--black); color:var(--white); }
   .btn.secondary{
-    background:transparent; color:var(--white); border-right:1px solid var(--line);
+    background:transparent; color:var(--white); border:2px solid var(--line);
   }
-  .phase-work .btn.secondary, .phase-done .btn.secondary{ color:var(--black); border-right-color:var(--lineDark); }
+  .phase-work .btn.secondary, .phase-done .btn.secondary{ color:var(--black); border-color:var(--lineDark); }
 
   /* ---- Settings sheet ---- */
   .sheet-backdrop{
@@ -157,44 +152,44 @@
   .field{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(0,0,0,.12);}
   .field label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--black);}
   .field .sub{display:block; font-size:11px; font-weight:400; text-transform:none; letter-spacing:0; color:rgba(0,0,0,.5); margin-top:2px;}
-  .stepper{display:flex; align-items:center; gap:0; border:2px solid var(--black);}
+  .stepper{display:flex; align-items:center; gap:6px;}
   .stepper button{
-    width:36px; height:36px; border:none; background:var(--black); color:var(--white);
+    width:36px; height:36px; border:none; background:var(--black); color:var(--white); border-radius:50%;
     font-size:18px; font-weight:700; line-height:1; cursor:pointer;
   }
   .stepper button:active{ background:var(--red); }
-  .stepper span{min-width:56px; text-align:center; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; background:var(--white);}
+  .stepper span{min-width:56px; text-align:center; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; background:var(--white); border-radius:10px;}
 
   .exercise-row{display:flex; align-items:center; gap:10px; padding:8px 0;}
   .exercise-row .idx{width:20px; text-align:center; color:var(--red); font-size:13px; font-weight:800;}
   .exercise-row input{
-    flex:1; background:var(--white); border:2px solid var(--black); padding:10px 12px;
+    flex:1; background:var(--white); border:2px solid var(--black); border-radius:12px; padding:10px 14px;
     color:var(--black); font-size:14px; font-weight:600;
   }
 
   .sheet-actions{display:flex; gap:10px; margin-top:18px;}
-  .sheet-actions .btn{padding:15px 0; color:var(--black);}
-  .sheet-actions .btn.secondary{ background:var(--white); border:2px solid var(--black); border-right:2px solid var(--black); }
+  .sheet-actions .btn{padding:15px 0; color:var(--black); border-radius:18px;}
+  .sheet-actions .btn.secondary{ background:var(--white); border:2px solid var(--black); }
   .sheet-actions .btn.primary{ background:var(--black); color:var(--white); }
   .sheet-actions .btn.ghost{ background:transparent; border:2px solid var(--black); color:var(--black); }
 
   .toggle-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0;}
   .toggle-row label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
-  .switch{position:relative; width:48px; height:26px; background:var(--white); border:2px solid var(--black); cursor:pointer;}
+  .switch{position:relative; width:48px; height:26px; background:var(--white); border:2px solid var(--black); border-radius:999px; cursor:pointer;}
   .switch.on{background:var(--red);}
-  .switch::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:var(--black); transition:transform .15s;}
+  .switch::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:var(--black); border-radius:50%; transition:transform .15s;}
   .switch.on::after{transform:translateX(20px); background:var(--white);}
 
   .workout-item{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background:var(--white); border:2px solid var(--black); padding:12px 14px; margin-bottom:10px;
+    background:var(--white); border:2px solid var(--black); border-radius:16px; padding:12px 14px; margin-bottom:10px;
   }
   .workout-item .info{flex:1; min-width:0;}
   .workout-item .info .name{font-size:14px; font-weight:800; text-transform:uppercase;}
   .workout-item .info .meta{font-size:11px; color:rgba(0,0,0,.55); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .workout-item .actions{display:flex; gap:8px;}
   .icon-btn{
-    background:var(--black); border:none; color:var(--white); font-weight:700; text-transform:uppercase;
+    background:var(--black); border:none; color:var(--white); font-weight:700; text-transform:uppercase; border-radius:10px;
     padding:8px 12px; font-size:11px; letter-spacing:.05em; cursor:pointer;
   }
   .icon-btn.danger{ background:var(--red); }
@@ -203,7 +198,7 @@
 </head>
 <body class="phase-prep">
 
-  <div class="watermark" id="watermark">01</div>
+  <div class="progress-fill" id="progressFill"></div>
 
   <div class="top">
     <div class="brand">
@@ -211,23 +206,22 @@
       <span class="mark"></span>
       <span class="word">Interval</span>
     </div>
-    <div class="next" id="roundsLabel" style="font-size:11px;">Round 1 / 8</div>
+    <div class="next" id="roundsLabel" style="font-size:13px;">Round 1 / 8</div>
     <button class="icon-btn-plain" id="openSettings" aria-label="Settings">
-      <svg width="20" height="14" viewBox="0 0 20 14"><rect width="20" height="2" fill="currentColor"/><rect y="6" width="20" height="2" fill="currentColor"/><rect y="12" width="20" height="2" fill="currentColor"/></svg>
+      <svg width="24" height="16" viewBox="0 0 20 14"><rect width="20" height="2" fill="currentColor"/><rect y="6" width="20" height="2" fill="currentColor"/><rect y="12" width="20" height="2" fill="currentColor"/></svg>
     </button>
   </div>
 
   <div class="center">
     <div class="tag-row">
       <span class="tag"></span>
-      <div class="phase-label" id="phaseLabel">Get Ready</div>
+      <div class="phase-label plate" id="phaseLabel">Get Ready</div>
     </div>
-    <div class="time" id="timeDisplay">00:10</div>
+    <div class="time plate" id="timeDisplay">00:10</div>
     <div class="cross" id="doneCross" style="display:none;"></div>
     <div class="next" id="nextLabel">then Work</div>
   </div>
 
-  <div class="seg-bar" id="segBar"></div>
   <div class="meta-row">
     <span id="metaLeft">Round 1/8</span>
     <span id="metaRight">Ex 1/1</span>
@@ -384,20 +378,9 @@
   const roundsLabel = $('roundsLabel');
   const metaLeft = $('metaLeft');
   const metaRight = $('metaRight');
-  const watermark = $('watermark');
   const doneCross = $('doneCross');
-  const segBar = $('segBar');
+  const progressFill = $('progressFill');
   const startBtn = $('startBtn');
-  const SEG_COUNT = 20;
-
-  // Build segment bar once
-  const segEls = [];
-  for (let i=0;i<SEG_COUNT;i++){
-    const s = document.createElement('div');
-    s.className = 'seg';
-    segBar.appendChild(s);
-    segEls.push(s);
-  }
 
   function exName(i){
     return (state.exercises && state.exercises[i]) ? state.exercises[i] : ('Exercise ' + (i+1));
@@ -468,14 +451,13 @@
       metaRight.textContent = `Ex ${exerciseIndex+1}/${state.exerciseCount}`;
     }
 
-    watermark.textContent = String(isDone ? state.rounds : round).padStart(2,'0');
+    updateProgressFill();
+  }
 
+  function updateProgressFill(){
     const total = currentPhaseDuration(phase) || 1;
-    const elapsedFrac = isDone ? 1 : Math.min(1, Math.max(0, 1 - (remaining / total)));
-    const filled = Math.round(elapsedFrac * SEG_COUNT);
-    for (let i=0;i<SEG_COUNT;i++){
-      segEls[i].classList.toggle('filled', i < filled);
-    }
+    const elapsedFrac = (phase==='done') ? 1 : Math.min(1, Math.max(0, 1 - (remaining / total)));
+    progressFill.style.height = (elapsedFrac * 100) + '%';
   }
 
   // Simple WebAudio beep, no external assets
@@ -539,6 +521,8 @@
       halfwayPlayed = true;
       halfwayChime();
     }
+
+    updateProgressFill();
 
     if (whole !== lastWholeSecond){
       lastWholeSecond = whole;
