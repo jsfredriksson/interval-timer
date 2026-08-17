@@ -198,6 +198,13 @@
 </head>
 <body class="phase-prep">
 
+  <audio id="sndCountdown" src="sounds/countdown.mp3" preload="auto"></audio>
+  <audio id="sndWorkStart" src="sounds/work-start.mp3" preload="auto"></audio>
+  <audio id="sndHalfway" src="sounds/halfway.mp3" preload="auto"></audio>
+  <audio id="sndRestStart" src="sounds/rest-start.mp3" preload="auto"></audio>
+  <audio id="sndRoundReset" src="sounds/round-reset.mp3" preload="auto"></audio>
+  <audio id="sndComplete" src="sounds/complete.mp3" preload="auto"></audio>
+
   <div class="progress-fill" id="progressFill"></div>
 
   <div class="top">
@@ -460,21 +467,37 @@
     progressFill.style.height = (elapsedFrac * 100) + '%';
   }
 
-  // Simple WebAudio beep, no external assets
-  let audioCtx;
-  function beep(freq, dur){
+  // ---- Custom sound clips (replace the old synthesized beeps) ----
+  const sounds = {
+    countdown: $('sndCountdown'),
+    workStart: $('sndWorkStart'),
+    halfway: $('sndHalfway'),
+    restStart: $('sndRestStart'),
+    roundReset: $('sndRoundReset'),
+    complete: $('sndComplete'),
+  };
+  let audioUnlocked = false;
+
+  // iOS/Safari only allow audio playback once it's been "unlocked" by a real
+  // user tap. We play+immediately pause every clip inside the first Start tap.
+  function unlockAudio(){
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    Object.values(sounds).forEach(el=>{
+      if (!el) return;
+      const prevMuted = el.muted;
+      el.muted = true;
+      el.play().then(()=>{ el.pause(); el.currentTime = 0; el.muted = prevMuted; }).catch(()=>{ el.muted = prevMuted; });
+    });
+  }
+
+  function playSound(key){
     if (!state.sound) return;
+    const el = sounds[key];
+    if (!el) return;
     try{
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.value = freq;
-      g.gain.value = 0.18;
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start();
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-      o.stop(audioCtx.currentTime + dur);
+      el.currentTime = 0;
+      el.play().catch(()=>{});
     }catch(e){}
   }
 
@@ -483,15 +506,15 @@
   }
 
   function announcePhaseStart(p){
-    if (p==='work'){ beep(880,0.15); vibrate([80,60,80]); }
-    else if (p==='rest'){ beep(440,0.15); vibrate(60); }
-    else if (p==='roundReset'){ beep(600,0.15); setTimeout(()=>beep(600,0.15),180); vibrate([100,80,100]); }
-    else if (p==='done'){ beep(660,0.12); setTimeout(()=>beep(880,0.12),150); setTimeout(()=>beep(1046,0.2),300); vibrate([100,60,100,60,200]); }
+    if (p==='work'){ playSound('workStart'); vibrate([80,60,80]); }
+    else if (p==='rest'){ playSound('restStart'); vibrate(60); }
+    else if (p==='roundReset'){ playSound('roundReset'); vibrate([100,80,100]); }
+    else if (p==='done'){ playSound('complete'); vibrate([100,60,100,60,200]); }
   }
 
-  function countdownTick(){ beep(1200,0.06); }
+  function countdownTick(){ playSound('countdown'); }
 
-  function halfwayChime(){ beep(700,0.1); setTimeout(()=>beep(1000,0.12), 110); }
+  function halfwayChime(){ playSound('halfway'); }
 
   async function requestWakeLock(){
     try{
@@ -622,6 +645,7 @@
   }
 
   startBtn.addEventListener('click', ()=>{
+    unlockAudio();
     if (running) pause(); else start();
   });
   $('resetBtn').addEventListener('click', reset);
