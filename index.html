@@ -40,10 +40,10 @@
   body.phase-work{ background:var(--red); }
   body.phase-done{ background:var(--red); }
 
-  /* ---- Full-screen continuous progress fill (Difference blend) ---- */
+  /* ---- Full-screen continuous progress fill ---- */
   .progress-fill{
     position:fixed; left:0; right:0; bottom:0; z-index:1; height:0%;
-    background:var(--red); mix-blend-mode:difference; pointer-events:none;
+    background:rgba(255,255,255,.14); pointer-events:none;
   }
   body.phase-done .progress-fill{ display:none; }
 
@@ -139,61 +139,62 @@
   }
   .sheet-backdrop.open{display:flex;}
   .sheet{
-    width:100%; background:var(--paper); color:var(--black); padding:20px 20px calc(env(safe-area-inset-bottom,18px) + 18px);
+    width:100%; background:var(--black); color:var(--white); padding:20px 20px calc(env(safe-area-inset-bottom,18px) + 18px);
     max-height:86dvh; overflow-y:auto; border-top:4px solid var(--red);
   }
   .sheet h2{
-    margin:2px 0 16px; font-size:20px; font-weight:800; text-transform:uppercase; letter-spacing:.02em;
+    margin:2px 0 16px; font-size:20px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; color:var(--white);
   }
   .sheet h3{
     margin:22px 0 10px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.16em;
-    color:var(--red); border-bottom:2px solid var(--black); padding-bottom:6px;
+    color:var(--red); border-bottom:2px solid var(--white); padding-bottom:6px;
   }
-  .field{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(0,0,0,.12);}
-  .field label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--black);}
-  .field .sub{display:block; font-size:11px; font-weight:400; text-transform:none; letter-spacing:0; color:rgba(0,0,0,.5); margin-top:2px;}
+  .field{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.15);}
+  .field label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--white);}
+  .field .sub{display:block; font-size:11px; font-weight:400; text-transform:none; letter-spacing:0; color:rgba(255,255,255,.5); margin-top:2px;}
   .stepper{display:flex; align-items:center; gap:6px;}
   .stepper button{
-    width:36px; height:36px; border:none; background:var(--black); color:var(--white); border-radius:50%;
+    width:36px; height:36px; border:none; background:var(--white); color:var(--black); border-radius:50%;
     font-size:18px; font-weight:700; line-height:1; cursor:pointer;
   }
-  .stepper button:active{ background:var(--red); }
-  .stepper span{min-width:56px; text-align:center; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; background:var(--white); border-radius:10px;}
+  .stepper button:active{ background:var(--red); color:var(--white); }
+  .stepper span{min-width:56px; text-align:center; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:var(--white); background:transparent; border:2px solid var(--white); border-radius:10px;}
 
   .exercise-row{display:flex; align-items:center; gap:10px; padding:8px 0;}
   .exercise-row .idx{width:20px; text-align:center; color:var(--red); font-size:13px; font-weight:800;}
   .exercise-row input{
-    flex:1; background:var(--white); border:2px solid var(--black); border-radius:12px; padding:10px 14px;
-    color:var(--black); font-size:14px; font-weight:600;
+    flex:1; background:var(--black); border:2px solid var(--white); border-radius:12px; padding:10px 14px;
+    color:var(--white); font-size:14px; font-weight:600;
   }
+  .exercise-row input::placeholder{ color:rgba(255,255,255,.4); }
 
   .sheet-actions{display:flex; gap:10px; margin-top:18px;}
-  .sheet-actions .btn{padding:15px 0; color:var(--black); border-radius:18px;}
-  .sheet-actions .btn.secondary{ background:var(--white); border:2px solid var(--black); }
-  .sheet-actions .btn.primary{ background:var(--black); color:var(--white); }
-  .sheet-actions .btn.ghost{ background:transparent; border:2px solid var(--black); color:var(--black); }
+  .sheet-actions .btn{padding:15px 0; border-radius:18px;}
+  .sheet-actions .btn.secondary{ background:var(--black); border:2px solid var(--white); color:var(--white); }
+  .sheet-actions .btn.primary{ background:var(--white); color:var(--black); }
+  .sheet-actions .btn.ghost{ background:transparent; border:2px solid var(--white); color:var(--white); }
 
   .toggle-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0;}
-  .toggle-row label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
-  .switch{position:relative; width:48px; height:26px; background:var(--white); border:2px solid var(--black); border-radius:999px; cursor:pointer;}
+  .toggle-row label{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--white);}
+  .switch{position:relative; width:48px; height:26px; background:var(--black); border:2px solid var(--white); border-radius:999px; cursor:pointer;}
   .switch.on{background:var(--red);}
-  .switch::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:var(--black); border-radius:50%; transition:transform .15s;}
-  .switch.on::after{transform:translateX(20px); background:var(--white);}
+  .switch::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:var(--white); border-radius:50%; transition:transform .15s;}
+  .switch.on::after{transform:translateX(20px); background:var(--black);}
 
   .workout-item{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background:var(--white); border:2px solid var(--black); border-radius:16px; padding:12px 14px; margin-bottom:10px;
+    background:var(--black); border:2px solid var(--white); border-radius:16px; padding:12px 14px; margin-bottom:10px;
   }
   .workout-item .info{flex:1; min-width:0;}
-  .workout-item .info .name{font-size:14px; font-weight:800; text-transform:uppercase;}
-  .workout-item .info .meta{font-size:11px; color:rgba(0,0,0,.55); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .workout-item .info .name{font-size:14px; font-weight:800; text-transform:uppercase; color:var(--white);}
+  .workout-item .info .meta{font-size:11px; color:rgba(255,255,255,.55); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .workout-item .actions{display:flex; gap:8px;}
   .icon-btn{
-    background:var(--black); border:none; color:var(--white); font-weight:700; text-transform:uppercase; border-radius:10px;
+    background:var(--white); border:none; color:var(--black); font-weight:700; text-transform:uppercase; border-radius:10px;
     padding:8px 12px; font-size:11px; letter-spacing:.05em; cursor:pointer;
   }
-  .icon-btn.danger{ background:var(--red); }
-  .empty-state{color:rgba(0,0,0,.5); font-size:13px; text-align:center; padding:24px 0; text-transform:uppercase; letter-spacing:.05em;}
+  .icon-btn.danger{ background:var(--red); color:var(--white); }
+  .empty-state{color:rgba(255,255,255,.5); font-size:13px; text-align:center; padding:24px 0; text-transform:uppercase; letter-spacing:.05em;}
 </style>
 </head>
 <body class="phase-prep">
