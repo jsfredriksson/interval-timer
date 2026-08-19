@@ -327,6 +327,11 @@
   <div class="sheet-backdrop" id="loadBackdrop">
     <div class="sheet">
       <h2>Load Previous Workout</h2>
+      <div class="sheet-actions" style="margin-top:0; margin-bottom:14px;">
+        <button class="btn secondary" id="exportLibraryBtn">Export Library</button>
+        <button class="btn secondary" id="importLibraryBtn">Import Library</button>
+        <input type="file" id="importLibraryFile" accept="application/json" style="display:none;">
+      </div>
       <div id="workoutList"></div>
       <div class="sheet-actions">
         <button class="btn ghost" id="closeLoad">Close</button>
@@ -839,6 +844,53 @@
   });
   loadBackdrop.addEventListener('click', (e)=>{
     if (e.target === loadBackdrop) loadBackdrop.classList.remove('open');
+  });
+
+  // ---- Export / Import the whole workout library as a JSON file ----
+  // This is a real file you control (save it to Files/iCloud) so your
+  // library survives browser storage being cleared, reinstalls, or
+  // switching devices — unlike localStorage, which iOS can silently wipe
+  // when a Home Screen web app is removed and re-added.
+  $('exportLibraryBtn').addEventListener('click', ()=>{
+    const workouts = getWorkouts();
+    const blob = new Blob([JSON.stringify(workouts, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chronos-workouts.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+
+  const importLibraryFile = $('importLibraryFile');
+  $('importLibraryBtn').addEventListener('click', ()=>{
+    importLibraryFile.value = '';
+    importLibraryFile.click();
+  });
+  importLibraryFile.addEventListener('change', ()=>{
+    const file = importLibraryFile.files && importLibraryFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported)) throw new Error('not a list');
+        const existing = getWorkouts();
+        imported.forEach(w=>{
+          if (!w || !w.name) return;
+          const idx = existing.findIndex(e => e.name === w.name);
+          if (idx >= 0) existing[idx] = w; else existing.unshift(w);
+        });
+        saveWorkouts(existing);
+        renderWorkoutList();
+        window.alert('Imported ' + imported.length + ' workout(s).');
+      }catch(e){
+        window.alert('Could not read that file — make sure it\'s a Chronos workout export.');
+      }
+    };
+    reader.readAsText(file);
   });
 
   // Init
