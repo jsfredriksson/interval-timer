@@ -581,7 +581,7 @@
 
     if (whole !== lastWholeSecond){
       lastWholeSecond = whole;
-      if (whole > 0 && whole <= 3 && phase !== 'idle' && phase !== 'done') {
+      if (whole >= 2 && whole <= 4 && phase !== 'idle' && phase !== 'done') {
         countdownTick();
       }
       updateDisplay();
