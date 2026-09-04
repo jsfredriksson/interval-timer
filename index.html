@@ -22,7 +22,1109 @@
     --line: rgba(255,255,255,.28);
     --lineDark: rgba(0,0,0,.22);
     --muted: rgba(255,255,255,.55);
+  }<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chronos">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>Chronos</title>
+<link rel="apple-touch-icon" href="icons/icon-180.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png?v=3">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap">
+<style>
+  /* ============================================================
+     TOKENS — the only place values are defined.
+     Change the look here; nothing below hard-codes a number.
+     ============================================================ */
+  :root{
+    color-scheme: dark;
+
+    /* palette — three colors, nothing else */
+    --accent:#e8402a;
+    --ink-dark:#0a0a0a;
+    --ink-light:#ffffff;
+
+    /* type — five steps, two weights, no tracking games */
+    --t-clock: clamp(72px, 26vmin, 180px);
+    --t-hero:  clamp(30px, 11vmin, 48px);
+    --t-body:  17px;
+    --t-label: 15px;
+    --t-micro: 13px;
+    --w-mid: 600;
+    --w-bold: 800;
+    /* Archivo from the CDN; the system stack behind it so an offline
+       launch degrades to SF Pro instead of Times. */
+    --font: "Archivo", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    /* space — 4px scale */
+    --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px;
+
+    /* shape */
+    --r:8px;
+    --r-round:999px;
+    --tap:44px;
+    --rule:2px;
   }
+
+  /* Phase themes set only ground, ink and fill. Everything derives. */
+  body.phase-prep{
+    --ground:var(--ink-dark); --ink:var(--ink-light);
+    --fill:var(--accent); --fill-edge:var(--accent);
+  }
+  body.phase-work{
+    --ground:var(--accent); --ink:var(--ink-dark);
+    --fill:var(--ink-light); --fill-edge:var(--ink-light);
+  }
+  body.phase-rest{
+    --ground:var(--ink-dark); --ink:var(--ink-light);
+    --fill:rgba(255,255,255,.12); --fill-edge:var(--ink-light);
+  }
+  body.phase-roundReset{
+    --ground:var(--ink-light); --ink:var(--ink-dark);
+    --fill:rgba(10,10,10,.08); --fill-edge:var(--ink-dark);
+  }
+  body.phase-done{
+    --ground:var(--accent); --ink:var(--ink-dark);
+    --fill:transparent; --fill-edge:transparent;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{height:100%; margin:0; overscroll-behavior:none;}
+  body{
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden; position:relative;
+    padding:env(safe-area-inset-top,var(--s-4)) 0 calc(env(safe-area-inset-bottom,var(--s-3)) + var(--s-3));
+    background:var(--ground); color:var(--ink);
+    font-family:var(--font); font-size:var(--t-body);
+    transition:background-color .25s ease, color .25s ease;
+  }
+  input,button{font-family:inherit;}
+  button{cursor:pointer;}
+  :focus-visible{outline:var(--rule) solid var(--accent); outline-offset:2px;}
+
+  /* ---- progress fill: always edged, so the boundary reads in every phase ---- */
+  .progress-fill{
+    position:fixed; left:0; right:0; bottom:0; z-index:1; height:0%;
+    background:var(--fill); border-top:var(--rule) solid var(--fill-edge);
+    pointer-events:none;
+  }
+  body.phase-done .progress-fill{display:none;}
+
+  /* Final three seconds: flash the edge only. Type never resizes. */
+  @keyframes edgeflash{ 50%{ border-top-color:var(--ground); } }
+  body.final-countdown .progress-fill{
+    border-top-width:6px;
+    animation:edgeflash .5s steps(1,end) infinite;
+  }
+
+  /* ---- top bar ---- */
+  .top{
+    position:relative; z-index:2; display:flex; align-items:center; gap:var(--s-4);
+    padding:var(--s-1) var(--s-5) var(--s-4);
+    border-bottom:var(--rule) solid color-mix(in srgb, var(--ink) 28%, transparent);
+  }
+  .brand{display:flex; align-items:center; gap:var(--s-3); margin-right:auto;}
+  .brand svg{display:block; width:22px; height:22px; fill:var(--ink); flex:none;}
+  .brand .word{font-size:var(--t-body); font-weight:var(--w-bold);}
+  .rounds{font-size:var(--t-body); font-weight:var(--w-mid); font-variant-numeric:tabular-nums;}
+  .menu{
+    background:none; border:none; color:var(--ink); flex:none;
+    width:var(--tap); height:var(--tap); margin:calc(var(--tap) / -4) calc(var(--s-3) * -1) calc(var(--tap) / -4) 0;
+    display:flex; flex-direction:column; justify-content:center; align-items:flex-end; gap:5px; padding:0;
+  }
+  .menu span{display:block; width:24px; height:2px; background:var(--ink);}
+  .wake-dot{
+    width:7px; height:7px; background:var(--accent); border-radius:var(--r-round);
+    visibility:hidden; flex:none;
+  }
+
+  /* ---- centre stage ---- */
+  .center{
+    position:relative; z-index:2; flex:1; min-height:0;
+    display:flex; flex-direction:column; justify-content:center; padding:0 var(--s-5);
+  }
+  .tag-row{display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-4);}
+  .tag{width:12px; height:12px; background:var(--ink); flex:none;}
+  .phase-rest .tag, .phase-roundReset .tag{background:var(--accent);}
+  .phase-label{font-size:var(--t-label); font-weight:var(--w-bold);}
+  .phase-roundReset .phase-label{color:var(--accent);}
+
+  .name{
+    font-size:var(--t-hero); font-weight:var(--w-bold);
+    line-height:1.02; letter-spacing:-.01em; margin:0 0 var(--s-3);
+    text-wrap:balance;
+  }
+  .time{
+    font-size:var(--t-clock); font-weight:var(--w-bold); font-variant-numeric:tabular-nums;
+    line-height:.92; margin:0 0 var(--s-3);
+  }
+  /* Secondary lines are SOLID ink at a smaller size. Never dimmed —
+     the fill rises behind the text, so an opacity tier would fail
+     contrast the moment the fill passed it. */
+  .next{font-size:var(--t-body); font-weight:var(--w-mid); color:var(--ink);}
+
+  /* ---- controls ---- */
+  .controls{position:relative; z-index:2; display:flex; gap:var(--s-3); padding:0 var(--s-5);}
+  .btn{
+    flex:1; min-height:60px; border:none; border-radius:var(--r);
+    font-size:var(--t-body); font-weight:var(--w-bold);
+    background:var(--ink); color:var(--ground);
+  }
+  .btn:active{opacity:.8;}
+  .btn.secondary{
+    background:transparent; color:var(--ink);
+    border:var(--rule) solid color-mix(in srgb, var(--ink) 28%, transparent);
+  }
+
+  /* ---- done summary ---- */
+  .summary{display:none; flex-direction:column; gap:var(--s-3); margin:var(--s-3) 0 var(--s-5);}
+  body.phase-done .summary{display:flex;}
+  body.phase-done .time, body.phase-done .next{display:none;}
+  .summary-row{
+    display:flex; align-items:baseline; justify-content:space-between; gap:var(--s-4);
+    padding-bottom:var(--s-2);
+    border-bottom:1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  }
+  .summary-row dt{font-size:var(--t-label); font-weight:var(--w-mid);}
+  .summary-row dd{margin:0; font-size:var(--t-hero); font-weight:var(--w-bold); font-variant-numeric:tabular-nums;}
+
+  /* ---- rotate notice: the app is portrait-only ---- */
+  .rotate{
+    position:fixed; inset:0; z-index:60; display:none;
+    background:var(--ink-dark); color:var(--ink-light);
+    align-items:center; justify-content:flex-start; padding:var(--s-6);
+  }
+  .rotate p{margin:0; font-size:var(--t-hero); font-weight:var(--w-bold); line-height:1.1; max-width:14ch;}
+  @media (orientation:landscape) and (max-height:520px){
+    .rotate{display:flex;}
+  }
+
+  /* ---- sheets ---- */
+  /* Settings is a full-screen view, not a bottom sheet: it holds a tab bar,
+     a variable-length movement list and a library, and Done sits in the
+     top-right corner where a thumb finds it without scrolling. */
+  .sheet-backdrop{
+    position:fixed; inset:0; z-index:20; display:none;
+    background:var(--ink-dark);
+  }
+  .sheet-backdrop.open{display:block;}
+  .sheet{
+    width:100%; height:100%; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top,0);
+    background:var(--ink-dark); color:var(--ink-light);
+    border-top:4px solid var(--accent);
+  }
+  .sheet-head{
+    position:sticky; top:0; z-index:2; background:var(--ink-dark);
+    display:flex; align-items:center; justify-content:space-between; gap:var(--s-4);
+    padding:var(--s-3) var(--s-4);
+    border-bottom:var(--rule) solid rgba(255,255,255,.28);
+  }
+  .sheet-head h2{margin:0; font-size:22px; font-weight:var(--w-bold);}
+  .sheet-body{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:var(--s-4) var(--s-4) calc(env(safe-area-inset-bottom,var(--s-4)) + var(--s-5));
+  }
+  .done-btn{
+    min-height:var(--tap); padding:0 var(--s-5); border:none; border-radius:var(--r);
+    background:var(--ink-light); color:var(--ink-dark);
+    font-size:16px; font-weight:var(--w-bold); flex:none;
+  }
+
+  .sub-head{font-size:var(--t-micro); font-weight:var(--w-mid); margin-bottom:var(--s-2);}
+  .sub-rule{
+    font-size:var(--t-micro); font-weight:var(--w-mid);
+    border-bottom:var(--rule) solid var(--accent); padding-bottom:6px;
+    margin:var(--s-5) 0 var(--s-3);
+  }
+
+  /* recents + library rows, swipe to delete */
+  .rows{display:flex; flex-direction:column; gap:var(--s-2);}
+  .swipe{position:relative; height:56px; border-radius:var(--r); overflow:hidden; background:var(--accent);}
+  .swipe .del{
+    position:absolute; right:18px; top:0; bottom:0; display:flex; align-items:center;
+    font-size:16px; font-weight:var(--w-bold); color:var(--ink-dark);
+    background:none; border:none; padding:0 var(--s-2);
+  }
+  .swipe .card{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; gap:var(--s-3);
+    padding:0 var(--s-4); border-radius:var(--r); background:#232323; color:var(--ink-light);
+    transition:transform .18s ease; touch-action:pan-y;
+  }
+  .swipe.open .card{transform:translateX(-92px);}
+  .swipe .card .nm{font-size:16px; font-weight:var(--w-bold);}
+  .swipe .card .mt{font-size:var(--t-micro); font-weight:400;}
+  .swipe .card .load{font-size:16px; font-weight:var(--w-mid); flex:none;}
+
+  /* tabs */
+  .tabs{
+    display:flex; margin:var(--s-4) 0 var(--s-4);
+    border:var(--rule) solid var(--ink-light); border-radius:var(--r); overflow:hidden;
+  }
+  .tabs button{
+    flex:1; min-height:var(--tap); border:none; background:transparent; color:var(--ink-light);
+    font-size:var(--t-label); font-weight:var(--w-mid);
+  }
+  .tabs button[aria-selected="true"]{background:var(--ink-light); color:var(--ink-dark); font-weight:var(--w-bold);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* field rows */
+  .field{
+    display:flex; align-items:center; justify-content:space-between; gap:var(--s-3);
+    min-height:56px; border-bottom:1px solid rgba(255,255,255,.25);
+  }
+  .field:last-of-type{border-bottom:none;}
+  .field label{font-size:16px; font-weight:var(--w-mid);}
+  .field .sub{display:block; font-size:var(--t-micro); font-weight:400; margin-top:2px;}
+  .stepper{display:flex; align-items:center; gap:var(--s-2); flex:none;}
+  .stepper button{
+    width:var(--tap); height:var(--tap); border:none; border-radius:var(--r-round);
+    background:var(--ink-light); color:var(--ink-dark);
+    font-size:20px; font-weight:var(--w-bold); line-height:1;
+  }
+  .stepper button:active{background:var(--accent); color:var(--ink-light);}
+  .stepper .val{
+    min-width:64px; text-align:center; font-variant-numeric:tabular-nums;
+    font-size:16px; font-weight:var(--w-bold);
+    background:rgba(255,255,255,.1); border-radius:var(--r); padding:10px 0;
+  }
+
+  /* exercises */
+  .ex-row{display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-2);}
+  .ex-row.dragging{opacity:.55;}
+  .ex-row.dragging input{border-style:dashed;}
+  .handle{
+    width:var(--tap); height:var(--tap); flex:none; border:none; background:none; padding:0 var(--s-2);
+    display:flex; flex-direction:column; justify-content:center; gap:3px; touch-action:none;
+  }
+  .handle span{display:block; height:2px; background:rgba(255,255,255,.5);}
+  .ex-row input{
+    flex:1; min-height:48px; min-width:0; border-radius:var(--r);
+    background:var(--ink-dark); border:var(--rule) solid var(--ink-light);
+    color:var(--ink-light); padding:0 var(--s-4); font-size:16px; font-weight:var(--w-mid);
+  }
+  .ex-row .kill{
+    width:var(--tap); height:var(--tap); flex:none; border:none; background:none;
+    color:var(--ink-light); font-size:20px; font-weight:var(--w-bold);
+  }
+  .ghost{
+    width:100%; min-height:48px; border-radius:var(--r);
+    border:var(--rule) solid rgba(255,255,255,.4); background:transparent; color:var(--ink-light);
+    font-size:16px; font-weight:var(--w-bold);
+  }
+  .danger{
+    width:100%; min-height:52px; border-radius:var(--r); margin-top:var(--s-5);
+    border:var(--rule) solid var(--accent); background:transparent; color:var(--accent);
+    font-size:16px; font-weight:var(--w-bold);
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:var(--s-2);}
+  .chips button{
+    min-height:40px; padding:0 var(--s-4); border:none; border-radius:var(--r-round);
+    background:rgba(255,255,255,.1); color:var(--ink-light);
+    font-size:var(--t-label); font-weight:var(--w-mid);
+  }
+  .chips button:active{background:var(--accent);}
+
+  /* switch */
+  .switch{
+    position:relative; width:56px; height:32px; flex:none; padding:0;
+    background:transparent; border:var(--rule) solid var(--ink-light); border-radius:var(--r-round);
+  }
+  .switch::after{
+    content:''; position:absolute; top:2px; left:2px; width:24px; height:24px;
+    background:var(--ink-light); border-radius:var(--r-round); transition:transform .15s;
+  }
+  .switch[aria-checked="true"]{background:var(--accent);}
+  .switch[aria-checked="true"]::after{transform:translateX(24px); background:var(--ink-dark);}
+
+  .link-row{
+    display:flex; align-items:center; justify-content:space-between;
+    width:100%; min-height:56px; margin-top:var(--s-4);
+    background:none; border:none; border-top:var(--rule) solid rgba(255,255,255,.28);
+    color:var(--ink-light); font-size:16px; font-weight:var(--w-mid);
+  }
+  .empty{padding:var(--s-5) 0; font-size:var(--t-label);}
+  .pair{display:flex; gap:var(--s-2); margin-bottom:var(--s-4);}
+  .pair button{
+    flex:1; min-height:var(--tap); border-radius:var(--r);
+    border:var(--rule) solid rgba(255,255,255,.4); background:transparent; color:var(--ink-light);
+    font-size:var(--t-label); font-weight:var(--w-bold);
+  }
+</style>
+</head>
+<body class="phase-prep">
+
+  <audio id="sndCountdown" src="sounds/countdown.mp3" preload="auto"></audio>
+  <audio id="sndWorkStart" src="sounds/work-start.mp3" preload="auto"></audio>
+  <audio id="sndHalfway" src="sounds/halfway.mp3" preload="auto"></audio>
+  <audio id="sndRestStart" src="sounds/rest-start.mp3" preload="auto"></audio>
+  <audio id="sndRoundReset" src="sounds/round-reset.mp3" preload="auto"></audio>
+  <audio id="sndComplete" src="sounds/complete.mp3" preload="auto"></audio>
+
+  <div class="progress-fill" id="progressFill"></div>
+
+  <div class="rotate"><p>Turn the phone upright</p></div>
+
+  <div class="top">
+    <div class="brand">
+      <span class="wake-dot" id="wakeIndicator" title="Screen wake lock"></span>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="0" y="41" width="100" height="18"></rect><rect x="41" y="0" width="18" height="100"></rect></svg>
+      <span class="word">Chronos</span>
+    </div>
+    <div class="rounds" id="roundsLabel">Round 1/8</div>
+    <button class="menu" id="openSettings" aria-label="Settings"><span></span><span></span><span></span></button>
+  </div>
+
+  <div class="center">
+    <div class="tag-row">
+      <span class="tag"></span>
+      <div class="phase-label" id="phaseLabel">Get ready</div>
+    </div>
+    <div class="name" id="nameDisplay">Exercise 1</div>
+    <div class="time" id="timeDisplay">0:10</div>
+    <div class="next" id="nextLabel">3 exercises, 8 rounds</div>
+    <dl class="summary" id="summary">
+      <div class="summary-row"><dt>Rounds</dt><dd id="sumRounds">8</dd></div>
+      <div class="summary-row"><dt>Movements</dt><dd id="sumMoves">3</dd></div>
+      <div class="summary-row"><dt>Time under load</dt><dd id="sumLoad">8:00</dd></div>
+      <div class="summary-row"><dt>Total</dt><dd id="sumTotal">14:20</dd></div>
+    </dl>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn" id="startBtn">Start</button>
+  </div>
+
+  <!-- ---------- settings sheet ---------- -->
+  <div class="sheet-backdrop" id="sheetBackdrop">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>Workout settings</h2>
+        <button class="done-btn" id="closeSettings">Done</button>
+      </div>
+      <div class="sheet-body">
+
+        <div id="recentsBlock">
+          <div class="sub-head">Recent</div>
+          <div class="rows" id="recentsList"></div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tabTiming" aria-selected="true" data-panel="panelTiming">Timing</button>
+          <button role="tab" id="tabEx" aria-selected="false" data-panel="panelEx">Exercises</button>
+          <button role="tab" id="tabAlerts" aria-selected="false" data-panel="panelAlerts">Alerts</button>
+        </div>
+
+        <div class="panel active" id="panelTiming">
+          <div class="field">
+            <label>Prepare</label>
+            <div class="stepper">
+              <button data-target="prep" data-step="-5" aria-label="Less">&minus;</button>
+              <span class="val" id="prepVal">10s</span>
+              <button data-target="prep" data-step="5" aria-label="More">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Work</label>
+            <div class="stepper">
+              <button data-target="work" data-step="-5" aria-label="Less">&minus;</button>
+              <span class="val" id="workVal">20s</span>
+              <button data-target="work" data-step="5" aria-label="More">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Rest<span class="sub">Between movements</span></label>
+            <div class="stepper">
+              <button data-target="rest" data-step="-5" aria-label="Less">&minus;</button>
+              <span class="val" id="restVal">10s</span>
+              <button data-target="rest" data-step="5" aria-label="More">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Rounds</label>
+            <div class="stepper">
+              <button data-target="rounds" data-step="-1" aria-label="Fewer">&minus;</button>
+              <span class="val" id="roundsVal">8</span>
+              <button data-target="rounds" data-step="1" aria-label="More">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Round reset<span class="sub">Time until the next round</span></label>
+            <div class="stepper">
+              <button data-target="roundReset" data-step="-5" aria-label="Less">&minus;</button>
+              <span class="val" id="roundResetVal">30s</span>
+              <button data-target="roundReset" data-step="5" aria-label="More">+</button>
+            </div>
+          </div>
+          <button class="link-row" id="openLibrary">All workouts<span aria-hidden="true">&rarr;</span></button>
+        </div>
+
+        <div class="panel" id="panelEx">
+          <div id="exerciseList"></div>
+          <button class="ghost" id="addExercise">Add movement</button>
+          <div id="historyBlock">
+            <div class="sub-rule">Movements you&rsquo;ve used</div>
+            <div class="chips" id="historyChips"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panelAlerts">
+          <div class="field">
+            <label>Sound</label>
+            <button class="switch" id="soundToggle" role="switch" aria-checked="true" aria-label="Sound"></button>
+          </div>
+          <div class="field">
+            <label>Spoken next movement<span class="sub">Says the name during rest</span></label>
+            <button class="switch" id="speakToggle" role="switch" aria-checked="true" aria-label="Spoken next movement"></button>
+          </div>
+          <div class="field">
+            <label>Halfway chime</label>
+            <button class="switch" id="halfwayToggle" role="switch" aria-checked="true" aria-label="Halfway chime"></button>
+          </div>
+          <div class="field">
+            <label>Countdown ticks<span class="sub">Last three seconds</span></label>
+            <button class="switch" id="ticksToggle" role="switch" aria-checked="true" aria-label="Countdown ticks"></button>
+          </div>
+          <button class="danger" id="resetWorkout">Reset workout</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- library sheet ---------- -->
+  <div class="sheet-backdrop" id="loadBackdrop">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>All workouts</h2>
+        <button class="done-btn" id="closeLoad">Done</button>
+      </div>
+      <div class="sheet-body">
+        <div class="pair">
+          <button id="saveWorkoutBtn">Save current</button>
+          <button id="exportLibraryBtn">Export</button>
+          <button id="importLibraryBtn">Import</button>
+        </div>
+        <input type="file" id="importLibraryFile" accept="application/json" style="display:none;">
+        <div class="rows" id="workoutList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  /* ---------------- state ---------------- */
+  const state = {
+    prep:10, work:20, rest:10, roundReset:30, rounds:8,
+    exercises:["Exercise 1"],
+    sound:true, speak:true, halfway:true, ticks:true,
+  };
+
+  try{
+    const saved = JSON.parse(localStorage.getItem('intervalTimerSettings') || 'null');
+    if (saved){
+      Object.assign(state, saved);
+      // migrate: exerciseCount is gone; the list is the truth now
+      if (typeof saved.exerciseCount === 'number' && Array.isArray(saved.exercises)){
+        state.exercises = saved.exercises.slice(0, Math.max(1, saved.exerciseCount));
+      }
+      if (saved.vibrate !== undefined) delete state.vibrate;
+    }
+  }catch(e){}
+  normalize();
+
+  function normalize(){
+    if (!Array.isArray(state.exercises) || !state.exercises.length) state.exercises = ["Exercise 1"];
+    state.exercises = state.exercises.map((n,i) => (n && String(n).trim()) ? n : 'Exercise ' + (i+1));
+  }
+  const exCount = () => state.exercises.length;
+  const exName = i => state.exercises[i] || ('Exercise ' + (i+1));
+  const persist = () => localStorage.setItem('intervalTimerSettings', JSON.stringify(state));
+
+  function getWorkouts(){
+    try{ return JSON.parse(localStorage.getItem('intervalTimerWorkouts') || '[]'); }
+    catch(e){ return []; }
+  }
+  const saveWorkouts = list => localStorage.setItem('intervalTimerWorkouts', JSON.stringify(list));
+
+  function getHistory(){
+    try{ return JSON.parse(localStorage.getItem('intervalTimerHistory') || '[]'); }
+    catch(e){ return []; }
+  }
+  function rememberMovements(){
+    const seen = getHistory();
+    state.exercises.forEach(n => {
+      const name = String(n).trim();
+      if (!name || /^Exercise \d+$/.test(name)) return;
+      const i = seen.indexOf(name);
+      if (i >= 0) seen.splice(i,1);
+      seen.unshift(name);
+    });
+    localStorage.setItem('intervalTimerHistory', JSON.stringify(seen.slice(0,12)));
+  }
+
+  /* ---------------- engine ---------------- */
+  let phase='idle', round=1, exerciseIndex=0, remaining=0, running=false;
+  let tickHandle=null, endTime=0, wakeLock=null;
+  let workAccum=0, workoutStart=0, workoutEnd=0;
+
+  const body = document.body;
+  const timeDisplay=$('timeDisplay'), phaseLabel=$('phaseLabel'), nameDisplay=$('nameDisplay');
+  const nextLabel=$('nextLabel'), roundsLabel=$('roundsLabel'), progressFill=$('progressFill');
+  const controls=$('controls');
+
+  function fmt(s){
+    s = Math.max(0, Math.ceil(s));
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function duration(p){
+    return p==='prep' ? state.prep
+      : p==='work' ? state.work
+      : p==='rest' ? state.rest
+      : p==='roundReset' ? state.roundReset : 0;
+  }
+
+  function renderControls(){
+    if (phase==='done'){
+      controls.innerHTML = '<button class="btn secondary" id="againBtn">Repeat</button><button class="btn" id="newBtn">Edit workout</button>';
+      $('againBtn').addEventListener('click', () => { reset(); start(); });
+      $('newBtn').addEventListener('click', openSettings);
+      return;
+    }
+    if (running){
+      controls.innerHTML = '<button class="btn" id="pauseBtn">Pause</button>';
+      $('pauseBtn').addEventListener('click', pause);
+      return;
+    }
+    if (phase==='idle'){
+      controls.innerHTML = '<button class="btn" id="startBtn">Start</button>';
+      $('startBtn').addEventListener('click', () => { unlockAudio(); start(); });
+      return;
+    }
+    controls.innerHTML = '<button class="btn secondary" id="resetBtn">Reset</button><button class="btn" id="resumeBtn">Resume</button>';
+    $('resetBtn').addEventListener('click', reset);
+    $('resumeBtn').addEventListener('click', start);
+  }
+
+  function updateDisplay(){
+    const last = exerciseIndex >= exCount() - 1;
+
+    if (phase==='done'){
+      phaseLabel.textContent = 'Complete';
+      nameDisplay.textContent = 'Workout done';
+      roundsLabel.textContent = state.rounds + ' rounds';
+      $('sumRounds').textContent = state.rounds;
+      $('sumMoves').textContent = exCount();
+      $('sumLoad').textContent = fmt(workAccum);
+      $('sumTotal').textContent = fmt((workoutEnd - workoutStart)/1000);
+      renderControls();
+      return;
+    }
+
+    timeDisplay.textContent = fmt(remaining);
+    roundsLabel.textContent = 'Round ' + (phase==='prep' ? 1 : round) + '/' + state.rounds;
+
+    if (phase==='prep' || phase==='idle'){
+      phaseLabel.textContent = 'Get ready';
+      nameDisplay.textContent = exName(0);
+      nextLabel.textContent = exCount() + (exCount()===1 ? ' movement, ' : ' movements, ') + state.rounds + ' rounds';
+    } else if (phase==='work'){
+      phaseLabel.textContent = 'Work';
+      nameDisplay.textContent = exName(exerciseIndex);
+      nextLabel.textContent = !last ? 'Next: ' + exName(exerciseIndex+1)
+        : (round < state.rounds ? 'Next: round ' + (round+1) : 'Last set');
+    } else if (phase==='rest'){
+      phaseLabel.textContent = 'Rest';
+      nameDisplay.textContent = exName(exerciseIndex+1);
+      nextLabel.textContent = 'Next up';
+    } else if (phase==='roundReset'){
+      phaseLabel.textContent = 'Round reset';
+      nameDisplay.textContent = 'Round ' + (round+1) + ' next';
+      nextLabel.textContent = 'Next: ' + exName(0);
+    }
+
+    updateFill();
+    body.classList.toggle('final-countdown', phase!=='idle' && remaining > 0 && remaining <= 3);
+    renderControls();
+  }
+
+  function updateFill(){
+    const total = duration(phase) || 1;
+    const frac = phase==='done' ? 1 : Math.min(1, Math.max(0, 1 - remaining/total));
+    progressFill.style.height = (frac*100) + '%';
+  }
+
+  /* ---------------- sound ---------------- */
+  const sounds = {
+    countdown:$('sndCountdown'), workStart:$('sndWorkStart'), halfway:$('sndHalfway'),
+    restStart:$('sndRestStart'), roundReset:$('sndRoundReset'), complete:$('sndComplete'),
+  };
+  let audioUnlocked = false;
+  function unlockAudio(){
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    Object.values(sounds).forEach(el => {
+      if (!el) return;
+      const prev = el.muted; el.muted = true;
+      el.play().then(()=>{ el.pause(); el.currentTime=0; el.muted=prev; }).catch(()=>{ el.muted=prev; });
+    });
+    try{
+      if ('speechSynthesis' in window){
+        const warm = new SpeechSynthesisUtterance(' ');
+        warm.volume = 0;
+        window.speechSynthesis.speak(warm);
+      }
+    }catch(e){}
+  }
+  function playSound(key){
+    if (!state.sound) return;
+    const el = sounds[key];
+    if (!el) return;
+    try{ el.currentTime = 0; el.play().catch(()=>{}); }catch(e){}
+  }
+  function speak(text){
+    if (!state.sound || !state.speak) return;
+    try{
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }catch(e){}
+  }
+  function announce(p){
+    if (p==='prep') speak('Next up: ' + exName(0));
+    else if (p==='work') playSound('workStart');
+    else if (p==='rest'){ playSound('restStart'); speak('Next up: ' + exName(exerciseIndex+1)); }
+    else if (p==='roundReset'){ playSound('roundReset'); speak('Next up: ' + exName(0)); }
+    else if (p==='done') playSound('complete');
+  }
+
+  /* ---------------- wake lock ---------------- */
+  async function requestWakeLock(){
+    try{
+      if ('wakeLock' in navigator){
+        wakeLock = await navigator.wakeLock.request('screen');
+        $('wakeIndicator').style.visibility = 'visible';
+        wakeLock.addEventListener('release', ()=>{ $('wakeIndicator').style.visibility='hidden'; });
+      }
+    }catch(e){}
+  }
+  function releaseWakeLock(){
+    if (wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState==='visible' && running) requestWakeLock();
+  });
+
+  /* ---------------- ticking ---------------- */
+  let lastWhole=null, halfwayPlayed=false;
+
+  function tick(){
+    remaining = (endTime - Date.now())/1000;
+    const whole = Math.ceil(remaining);
+
+    if (phase==='work' && !halfwayPlayed && remaining <= state.work/2){
+      halfwayPlayed = true;
+      if (state.halfway) playSound('halfway');
+    }
+    updateFill();
+
+    if (whole !== lastWhole){
+      lastWhole = whole;
+      if (state.ticks && whole >= 2 && whole <= 4 && phase!=='idle' && phase!=='done') playSound('countdown');
+      updateDisplay();
+    }
+    if (remaining <= 0){ advance(); return; }
+    tickHandle = requestAnimationFrame(tick);
+  }
+
+  function startPhase(p, dur){
+    phase = p; remaining = dur; endTime = Date.now() + dur*1000;
+    lastWhole = null; halfwayPlayed = false;
+    body.className = 'phase-' + p;
+    announce(p);
+    updateDisplay();
+    if (dur <= 0){ advance(); return; }
+    tickHandle = requestAnimationFrame(tick);
+  }
+
+  function advance(){
+    cancelAnimationFrame(tickHandle);
+    if (phase==='prep'){
+      round = 1; exerciseIndex = 0;
+      startPhase('work', state.work);
+    } else if (phase==='work'){
+      workAccum += state.work;
+      if (exerciseIndex < exCount()-1) startPhase('rest', state.rest);
+      else if (round < state.rounds) startPhase('roundReset', state.roundReset);
+      else finish();
+    } else if (phase==='rest'){
+      exerciseIndex++;
+      startPhase('work', state.work);
+    } else if (phase==='roundReset'){
+      round++; exerciseIndex = 0;
+      startPhase('work', state.work);
+    }
+  }
+
+  function finish(){
+    phase = 'done';
+    body.className = 'phase-done';
+    workoutEnd = Date.now();
+    announce('done');
+    remaining = 0; running = false;
+    updateDisplay();
+    releaseWakeLock();
+  }
+
+  function start(){
+    if (running) return;
+    unlockAudio();
+    running = true;
+    requestWakeLock();
+    if (phase==='idle' || phase==='done'){
+      round = 1; exerciseIndex = 0; workAccum = 0; workoutStart = Date.now();
+      startPhase('prep', state.prep);
+    } else {
+      endTime = Date.now() + remaining*1000;
+      lastWhole = null;
+      renderControls();
+      tickHandle = requestAnimationFrame(tick);
+    }
+  }
+
+  function pause(){
+    running = false;
+    cancelAnimationFrame(tickHandle);
+    renderControls();
+  }
+
+  function reset(){
+    running = false;
+    cancelAnimationFrame(tickHandle);
+    phase = 'idle'; round = 1; exerciseIndex = 0; remaining = state.prep;
+    workAccum = 0;
+    body.className = 'phase-prep';
+    updateDisplay();
+    releaseWakeLock();
+  }
+
+  /* ---------------- settings sheet ---------------- */
+  const sheetBackdrop = $('sheetBackdrop');
+
+  function syncTiming(){
+    $('prepVal').textContent = state.prep + 's';
+    $('workVal').textContent = state.work + 's';
+    $('restVal').textContent = state.rest + 's';
+    $('roundsVal').textContent = state.rounds;
+    $('roundResetVal').textContent = state.roundReset + 's';
+  }
+  function syncAlerts(){
+    $('soundToggle').setAttribute('aria-checked', String(state.sound));
+    $('speakToggle').setAttribute('aria-checked', String(state.speak));
+    $('halfwayToggle').setAttribute('aria-checked', String(state.halfway));
+    $('ticksToggle').setAttribute('aria-checked', String(state.ticks));
+  }
+
+  function renderExercises(){
+    const host = $('exerciseList');
+    host.innerHTML = '';
+    state.exercises.forEach((name, i) => {
+      const row = document.createElement('div');
+      row.className = 'ex-row';
+      row.dataset.index = i;
+
+      const handle = document.createElement('button');
+      handle.className = 'handle';
+      handle.setAttribute('aria-label', 'Reorder ' + name);
+      handle.innerHTML = '<span></span><span></span><span></span>';
+      attachDrag(handle, row);
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = name;
+      input.placeholder = 'Movement ' + (i+1);
+      input.addEventListener('input', () => { state.exercises[i] = input.value; });
+
+      const kill = document.createElement('button');
+      kill.className = 'kill';
+      kill.setAttribute('aria-label', 'Remove ' + name);
+      kill.textContent = '\u00d7';
+      kill.addEventListener('click', () => {
+        if (state.exercises.length === 1) return;
+        state.exercises.splice(i,1);
+        normalize(); persist(); renderExercises();
+      });
+
+      row.append(handle, input, kill);
+      host.appendChild(row);
+    });
+  }
+
+  function attachDrag(handle, row){
+    let startY=0, rowH=0, from=0, active=false;
+    handle.addEventListener('pointerdown', e => {
+      active = true; from = Number(row.dataset.index);
+      startY = e.clientY; rowH = row.offsetHeight + 8;
+      row.classList.add('dragging');
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', e => {
+      if (!active) return;
+      row.style.transform = 'translateY(' + (e.clientY - startY) + 'px)';
+    });
+    handle.addEventListener('pointerup', e => {
+      if (!active) return;
+      active = false;
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      const shift = Math.round((e.clientY - startY) / rowH);
+      let to = Math.min(state.exercises.length-1, Math.max(0, from + shift));
+      if (to !== from){
+        const moved = state.exercises.splice(from,1)[0];
+        state.exercises.splice(to,0,moved);
+        persist();
+      }
+      renderExercises();
+    });
+  }
+
+  function renderHistory(){
+    const seen = getHistory().filter(n => !state.exercises.includes(n));
+    const host = $('historyChips');
+    host.innerHTML = '';
+    $('historyBlock').style.display = seen.length ? '' : 'none';
+    seen.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.addEventListener('click', () => {
+        state.exercises.push(name);
+        persist(); renderExercises(); renderHistory();
+      });
+      host.appendChild(b);
+    });
+  }
+
+  /* swipeable row used by recents and the library */
+  function swipeRow(w, index, onLoad, onDelete){
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe';
+
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = 'Delete';
+    del.addEventListener('click', onDelete);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<div><div class="nm"></div><div class="mt"></div></div><div class="load">Load</div>';
+    card.querySelector('.nm').textContent = w.name;
+    card.querySelector('.mt').textContent =
+      (w.exercises ? w.exercises.length : w.exerciseCount || 0) + ' movements, ' + w.rounds +
+      ' rounds, ' + w.work + 's work';
+
+    let x0=null, dx=0, moved=false;
+    card.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; moved = false; });
+    card.addEventListener('pointermove', e => {
+      if (x0 === null) return;
+      dx = Math.min(0, e.clientX - x0);
+      if (Math.abs(dx) > 6) moved = true;
+      card.style.transition = 'none';
+      card.style.transform = 'translateX(' + Math.max(-92, dx) + 'px)';
+    });
+    card.addEventListener('pointerup', () => {
+      card.style.transition = '';
+      card.style.transform = '';
+      if (dx < -46) wrap.classList.add('open');
+      else {
+        wrap.classList.remove('open');
+        if (!moved) onLoad();
+      }
+      x0 = null;
+    });
+    card.addEventListener('pointercancel', () => { x0 = null; card.style.transform = ''; });
+
+    wrap.append(del, card);
+    return wrap;
+  }
+
+  function applyWorkout(w){
+    Object.assign(state, {
+      prep:w.prep, work:w.work, rest:w.rest, roundReset:w.roundReset, rounds:w.rounds,
+      exercises: (w.exercises || []).slice(),
+    });
+    normalize();
+    const list = getWorkouts();
+    const hit = list.find(x => x.name === w.name);
+    if (hit) hit.lastUsed = Date.now();
+    saveWorkouts(list);
+    persist();
+    syncTiming(); renderExercises(); renderHistory(); renderRecents();
+    if (!running) reset();
+  }
+
+  function renderRecents(){
+    const list = getWorkouts()
+      .slice()
+      .sort((a,b) => (b.lastUsed||b.savedAt||0) - (a.lastUsed||a.savedAt||0))
+      .slice(0,3);
+    const host = $('recentsList');
+    host.innerHTML = '';
+    $('recentsBlock').style.display = list.length ? '' : 'none';
+    list.forEach(w => {
+      host.appendChild(swipeRow(w, 0, () => { applyWorkout(w); closeSettings(); }, () => {
+        saveWorkouts(getWorkouts().filter(x => x.name !== w.name));
+        renderRecents(); renderLibrary();
+      }));
+    });
+  }
+
+  function renderLibrary(){
+    const list = getWorkouts();
+    const host = $('workoutList');
+    host.innerHTML = '';
+    if (!list.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'No saved workouts yet.';
+      host.appendChild(empty);
+      return;
+    }
+    list.forEach(w => {
+      host.appendChild(swipeRow(w, 0, () => { applyWorkout(w); $('loadBackdrop').classList.remove('open'); }, () => {
+        saveWorkouts(getWorkouts().filter(x => x.name !== w.name));
+        renderLibrary(); renderRecents();
+      }));
+    });
+  }
+
+  function openSettings(){
+    syncTiming(); syncAlerts(); renderExercises(); renderHistory(); renderRecents();
+    sheetBackdrop.classList.add('open');
+  }
+  function closeSettings(){
+    normalize(); rememberMovements(); persist();
+    sheetBackdrop.classList.remove('open');
+    if (!running) reset();
+  }
+
+  $('openSettings').addEventListener('click', openSettings);
+  $('closeSettings').addEventListener('click', closeSettings);
+  sheetBackdrop.addEventListener('click', e => { if (e.target === sheetBackdrop) closeSettings(); });
+
+  document.querySelectorAll('.tabs button').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === tab.dataset.panel));
+    });
+  });
+
+  document.querySelectorAll('.stepper button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.target, step = parseInt(btn.dataset.step, 10);
+      const min = t === 'rounds' ? 1 : 0;
+      state[t] = Math.max(min, (state[t]||0) + step);
+      syncTiming(); persist();
+    });
+  });
+
+  $('addExercise').addEventListener('click', () => {
+    state.exercises.push('Movement ' + (state.exercises.length + 1));
+    persist(); renderExercises(); renderHistory();
+  });
+
+  [['soundToggle','sound'],['speakToggle','speak'],['halfwayToggle','halfway'],['ticksToggle','ticks']]
+    .forEach(([id, key]) => {
+      $(id).addEventListener('click', () => { state[key] = !state[key]; syncAlerts(); persist(); });
+    });
+
+  $('resetWorkout').addEventListener('click', () => {
+    Object.assign(state, { prep:10, work:20, rest:10, roundReset:30, rounds:8, exercises:['Exercise 1'] });
+    normalize(); persist();
+    syncTiming(); renderExercises(); renderHistory();
+    reset();
+  });
+
+  /* ---------------- library sheet ---------------- */
+  const loadBackdrop = $('loadBackdrop');
+  $('openLibrary').addEventListener('click', () => { renderLibrary(); loadBackdrop.classList.add('open'); });
+  $('closeLoad').addEventListener('click', () => loadBackdrop.classList.remove('open'));
+  loadBackdrop.addEventListener('click', e => { if (e.target === loadBackdrop) loadBackdrop.classList.remove('open'); });
+
+  $('saveWorkoutBtn').addEventListener('click', () => {
+    normalize();
+    const name = window.prompt('Name this workout:', '');
+    if (!name) return;
+    const list = getWorkouts();
+    const entry = {
+      name: name.trim(), savedAt: Date.now(), lastUsed: Date.now(),
+      prep:state.prep, work:state.work, rest:state.rest,
+      roundReset:state.roundReset, rounds:state.rounds,
+      exercises: state.exercises.slice(),
+    };
+    const i = list.findIndex(w => w.name === entry.name);
+    if (i >= 0) list[i] = entry; else list.unshift(entry);
+    saveWorkouts(list);
+    rememberMovements();
+    renderLibrary(); renderRecents();
+  });
+
+  $('exportLibraryBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(getWorkouts(), null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'chronos-workouts.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  const importFile = $('importLibraryFile');
+  $('importLibraryBtn').addEventListener('click', () => { importFile.value = ''; importFile.click(); });
+  importFile.addEventListener('change', () => {
+    const file = importFile.files && importFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported)) throw new Error('not a list');
+        const list = getWorkouts();
+        imported.forEach(w => {
+          if (!w || !w.name) return;
+          const i = list.findIndex(e => e.name === w.name);
+          if (i >= 0) list[i] = w; else list.unshift(w);
+        });
+        saveWorkouts(list);
+        renderLibrary(); renderRecents();
+        window.alert('Imported ' + imported.length + ' workout(s).');
+      }catch(e){
+        window.alert('Could not read that file \u2014 make sure it\u2019s a Chronos workout export.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ---------------- init ---------------- */
+  remaining = state.prep;
+  body.className = 'phase-prep';
+  updateDisplay();
+})();
+</script>
+</body>
+</html>
+
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
   html,body{
     height:100%; margin:0; background:var(--black); color:var(--white);
